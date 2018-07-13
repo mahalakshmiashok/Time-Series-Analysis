@@ -1,0 +1,220 @@
+---
+title: "Lake Erie Assignment"
+output: word_document
+---
+# "Assignment Lake"
+------------------------
+#Lake Erie is the fourth-largest lake (by surface area) of the five Great Lakes in North America.This dataset belongs to the monthly Lake erie levels from 1921~1970 
+
+```{r}
+library(rdatamarket) #Fetches data from datamarket.com
+library(Ecdat) # datasets for econometrics
+library(tseries)
+library(forecast)
+```
+#as.ts()converts the numeric vector into an  R time series object.
+#as.ts(dmseries(shortURL)) - dmseries fetch the rdatamarket package with the short URL in the Export tab in the datamarket dataset.Data in zoo format.
+#Use ts() with data_vector to convert your data to a ts object
+
+```{r}
+le_waterlevel<- as.ts(dmseries("http://data.is/1u2nBSk")) #short URL
+```
+
+```{r}
+View(le_waterlevel) 
+head(le_waterlevel)
+```
+#Find the class of the dataset
+```{r}
+class(le_waterlevel)#Which class belongs 
+```
+
+```{r}
+frequency(le_waterlevel)
+start(le_waterlevel)
+end(le_waterlevel)
+summary(le_waterlevel)
+```
+# plot() for univariate time series
+```{r}
+plot(le_waterlevel,col = "green")
+```
+
+#  Visualizing the monthly lake erie water levels in each year from 1921~1970
+```{r}
+le_waterlevel <- ts(le_waterlevel, start=start(le_waterlevel), freq=frequency(le_waterlevel))
+plot(le_waterlevel, main="Lake Erie Water level")
+abline(reg=lm(le_waterlevel~time(le_waterlevel)))
+```
+#Mean - The mean value is based on the time dependent.Here the mean is not constant.It varies.
+
+#Variance - Variance of the above graph shows that the series is not be a function of the time.This is also said be heteroscedasticity that is the variability of the variance is unequal across the range of values of second variables.
+
+#Covariance - It tells how the two variables vary together,here the Covariance is not constant with time.
+
+# Average of points i.e Mean is drawn using abline() to fit the line,Here the mean values is increasing.It shouldnot be increasing if its constant for stationary.Here this is not stationary.
+
+```{r}
+time(le_waterlevel)
+deltat(le_waterlevel)
+cycle(le_waterlevel)
+```
+# Seasonplot() - this is used to identify the seasonal decomposition to know the series with multiplicative effect can be transformed into series with additive effects through log transformation. Here the graph shows no seasonility.Its looks like a normal curve
+```{r}
+plot(le_waterlevel)
+seasonplot(le_waterlevel,ylab="water level",xlab="year",main="Seasonal plot",year.labels = TRUE,year.labels.left = TRUE,col = 1:20,pch=19)
+seasonplot(le_waterlevel,col = rainbow(3),year.labels = TRUE)
+monthplot(le_waterlevel,ylab="water level",xlab="year",main="Seasonal plot",axis(1,at=1:12,labels = month.abb,cex=0.8))
+```
+
+```{r}
+dim(le_waterlevel)
+le_waterleveldummy<-ts(as.vector(t(le_waterlevel)))
+tsData = ts(le_waterleveldummy, start=1921, end=1970, frequency = 12)
+plot(stl(tsData,s.window = "periodic"))#decompose
+```
+
+# ADF - Test for stationarity
+#Dickey - fuller test or augmented DF(Order of the integration of the series to be determined & that being an integer value.And its unit root test for stationarity.Unit root can cause unpredictable results in the time series analysis.
+```{r}
+adf.test(le_waterlevel,k=20)#more than 10 points
+```
+# p value is0.294 is greater than 0.05 which is accepting the null hypothesis. the calculated DF test statistic is more negative means that the stronger the evidence for rejecting the null hypothesis of a unit  root.but here the negative value is less than the tabulated value of without trend T sample size 20 is -2.86.Here also we are accepting the null hypothesis.
+
+# the first differencing in logs ,to investigate the time series behaviour of this data via ACF and PACF to be used in the ADF test.
+# Make the time series stationary.
+```{r}
+le_waterlevel_d <- diff(log(le_waterlevel))
+plot(le_waterlevel_d)
+```
+
+```{r}
+le_waterlevel_ds <- diff(le_waterlevel_d,lag = 12)# to remove the lag for seasonality diff for the cycle 12
+plot(le_waterlevel_ds)
+adf.test((le_waterlevel_ds),k=15)
+```
+# nUll hypothesis rejected.p value 0.01is less than .05.ie.
+#Alternate hypothesis is accepted said to be stationary.And also the DF test staistic value also in the higher negative side that we have to reject the null hypothesis.
+####################
+# ACF acf() - autocorrelation function
+# Autocorrelation of lag 0 is always zero.It is used to understand the internal association between observations. +1 strong positive and -1 strong negative association. 0 no association.
+# Partial Autocorrelation Function
+#Computes the sample partial autocorrelation function and the 95% confidence bounds for strict white noise are also plotted. Missing values are not handled.
+
+```{r}
+acf(le_waterlevel_ds)# here it is negative correlation i.e MA
+pacf(le_waterlevel_ds)# sudden cut off point below blue line
+```
+#Checking automative arima model (For cross verification purpose)
+```{r}
+fita<-auto.arima(le_waterlevel)
+fita
+```
+# ARIMA model iterations (AIC)
+```{r}
+fit1<-arima(log(le_waterlevel),c(1,1,0),seasonal = list(order = c(1,1,0)))
+fit2<-arima(log(le_waterlevel),c(0,1,1),seasonal = list(order = c(0,1,1)))
+fit3<-arima(log(le_waterlevel),c(2,0,0),seasonal = list(order = c(2,0,0)))
+fit1#AIC (how much loss in information)that should be minimum
+fit2
+fit3
+BIC(fit1)# fitted model
+BIC(fit2)
+BIC(fit3)
+```
+#Inference: Here in ACF plot shows that the lag 1 cut and in pacf it cuts at lag 11.Since the lag value above 5 is not to interpret the ARIMA model.We consider the lag of 0 and 1 to find the fitted model with the difference of 1.
+##################
+#Current values are related or correlated with their immediate previous Or next previous valuesarima(p,d,q)
+#Auroregressive p specifies number of lags used in the moel.
+#d referencing the degree of differencing.Differencing used to stablize the series when the stationary assumption not met.
+# q moving average represents the error of the model as the combination of the previous error terms.The order determines the number of terms to include in the model.
+
+# ARIMA model iterations (AIC)
+#In AIC (Akaike information criteria) is an estimate of constant plus relative distance between the unknown likelihood function of the data and the fitted likelihood function of the model.So lower AIC means a model is consider closer to truth.
+
+#BIC (Bayesian Information Criteria) is the estimate of s function of posterior probability of model being true under bayesian setup.Lower BIC also more likely to true model.
+
+```{r}
+pred<-predict(fit1,n.ahead = 10*12)
+ts.plot(le_waterlevel,2.718^pred$pred, lty = c(1,4))#line type for forecasting values display 
+```
+#Inference :  Considering the fitg1 model is best having the ARIMA(1,1,0) with low AIC and log likelihood values.So we consider this model for the prediction analysis for german stock data.
+#Fit1 - Considering the lag value cut in zero lag for AR and 0 value for MA and differentiation @ d is 1.
+
+#------------------
+#Forecasting the data for the next 10years for the best fitted model for each stock market with low residuals.
+
+```{r}
+lewater_fcst <- forecast:::forecast.Arima(fit1,h=10*12)
+forecast:::plot.forecast(lewater_fcst)
+plot(lewater_fcst$residuals)
+```
+
+```{r}
+hist(lewater_fcst$residuals,col = "blue")#for distribution
+acf(lewater_fcst$residuals,na.action = na.pass)
+Box.test(lewater_fcst$residuals,lag = 20,type = "Ljung-Box")
+accuracy(lewater_fcst) # MAPE Mean Average percentage error value less than 7
+```
+#Box Ljung test is to check the residuals from a time series model resemble white noise.If p value here 0.977 which is greater than p 0.05 so we have to accept the null hypothesis.
+
+#We don't have enough statistical evidence to reject the null hypothesis. So you can not assume that your values are dependent. This could mean that your values are dependent anyway or it can mean that your values are independent. But you are not proving any specific possibility, what your test actually said is that you can not assert the dependence of the values, neither can you assert the independence of the values.
+
+# The MAPE (Mean Absolute Percent Error) measures the size of the error in percentage terms. It is calculated as the average of the unsigned percentage error.
+#Many organizations focus primarily on the MAPE when assessing forecast accuracy.
+
+#Here we have 0.09 ie..91 % accuracy of the predicted residual model
+----------------------------------------------------------------------
+
+
+
+#Simple smoothing - Simple (single) exponential smoothing uses a weighted moving average with exponentially decreasing weights.
+# ?? = the smoothing constant, a value from 0 to 1. When ?? is close to zero, smoothing happens more slowly. The best value for ?? is the one that results in the smallest mean squared error (MSE).
+
+# ses() returns forecasts and other information for exponential smoothing forecasts.
+```{r}
+air_es <- ses(le_waterlevel,h=10*12) # not trend and seasonality in account
+plot(air_es)
+```
+#Holt method 
+# trend into account 
+# Holt's Method makes predictions for data with a trend using two smoothing parameters,?? and ??, which correspond to the level and trend components, respectively.
+```{r}
+air_holt <- holt(le_waterlevel,h=10*12)
+plot(air_holt)
+```
+#######################################################
+#holt winters smoothing - random fluctuation (smoothing)
+#analysis of seasonal time series data using Holt-Winters exponential smoothing.Time-series forecasting assumes that a time series is a combination of a pattern and some random error. The goal is to separate the pattern from the error such as fluctuations in use and demand.
+
+```{r}
+air_s <- HoltWinters(le_waterlevel,beta = FALSE,gamma = FALSE) # alpha is true becoz of random fluctuations
+plot(air_s)
+air_s_fcst<-forecast:::forecast.HoltWinters(air_s,h=10*12)
+forecast:::plot.forecast(air_s_fcst)
+plot(air_s_fcst)
+```
+##################
+# Double smoothing
+#Double Exponential Smoothing. Double exponential smoothing uses two constants and is better at handling trends. As was previously observed, Single Smoothing does not excel in following the data when there is a trend.
+```{r}
+air_s <- HoltWinters(le_waterlevel,gamma = FALSE) # alpha & beta is true becoz of random fluctuations
+plot(air_s)
+air_s_fcst<-forecast:::forecast.HoltWinters(air_s,h=10*12)
+forecast:::plot.forecast(air_s_fcst)
+plot(air_s_fcst)
+```
+#Triple smoothing
+# Triple exponential smoothing applies exponential smoothing three times, which is commonly used when there are three high frequency signals to be removed from a time series under study. 
+
+#HoltWinters() is using heuristic values for the initial states and then estimating the smoothing parameters by optimizing the MSE
+
+```{r}
+air_s <- HoltWinters(le_waterlevel) # alpha,beta and gamma is true becoz of random fluctuations
+plot(air_s)
+air_s_fcst<-forecast:::forecast.HoltWinters(air_s,h=10*12)
+forecast:::plot.forecast(air_s_fcst)
+plot(air_s_fcst)
+```
+#Inference - Here there is increasing and decreasing trend & random fluctuations and seasonality appears.
+

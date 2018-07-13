@@ -1,0 +1,513 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+--------------------------------
+##"EUStockmarket-Assignment"
+--------------------------------
+#Daily Closing Prices of Major European Stock Indices, 1991-1998
+#Description
+#Contains the daily closing prices of major European stock indices: Germany DAX (Ibis), Switzerland SMI, France CAC, and UK FTSE. The data are sampled in business time, i.e., weekends and holidays are omitted.
+
+#Usage
+#EuStockMarkets
+#Format
+#A multivariate time series with 1860 observations on 4 variables. The object is of class "mts".
+
+#Source
+#The data were kindly provided by Erste Bank AG, Vienna, Austria.
+
+#as.ts()converts the numeric vector into an  R time series object.
+#Use ts() with data_vector to convert your data to a ts object
+
+```{r}
+library(tseries)
+library(forecast)
+```
+#start,End,Frequency and time series
+```{r}
+data("EuStockMarkets")
+EuStockMarkets 
+```
+# Multivariate time series
+```{r}
+View(EuStockMarkets) 
+head(EuStockMarkets)
+```
+#Find the class of the dataset
+#Here it belongs to a multivariate time series
+```{r}
+class(EuStockMarkets)#Which class belongs 
+```
+#Class 'mts' shows multivariate time series.
+```{r}
+frequency(EuStockMarkets)
+start(EuStockMarkets)
+end(EuStockMarkets)
+```
+# plot.ts() for multivariate time series, each series plotted separately (with a common time axis).
+```{r}
+plot.ts(EuStockMarkets,col = "pink")
+```
+# Summary of descriptive statistics
+```{r}
+summary(EuStockMarkets[,1])
+summary(EuStockMarkets[,2])
+summary(EuStockMarkets[,3])
+summary(EuStockMarkets[,4])
+```
+# DAX Visualizing the Closing Prices of Stock Indices
+
+```{r}
+# Germany DAX (Ibis)
+par(mfrow=c(2,2))
+EuStock <- EuStockMarkets
+dax <- EuStockMarkets[,1]
+frequency(dax)
+german_dax <- ts(dax, start=start(EuStock), freq=frequency(EuStock))
+plot(german_dax, main="GREMAN DAX Daily Closing Value")
+abline(reg=lm(dax~time(dax)))
+
+#Switzerland SMI
+smi <- EuStockMarkets[,2]
+frequency(smi)
+swiz_smi <- ts(smi, start=start(EuStock), freq=frequency(EuStock))
+plot(swiz_smi, main="SWITZERLAND SMI Daily Closing Value")
+abline(reg=lm(smi~time(smi)))
+
+#France CAC
+cac <- EuStockMarkets[,3]
+frequency(cac)
+france_cac <- ts(cac, start=start(EuStock), freq=frequency(EuStock))
+plot(france_cac, main="FRANCE CAC Daily Closing Value")
+abline(reg=lm(cac~time(cac)))
+
+#UK FTSE
+ftse <- EuStockMarkets[,4]
+frequency(ftse)
+uk_ftse <- ts(ftse, start=start(EuStock), freq=frequency(EuStock))
+plot(uk_ftse, main="UK FTSE Daily Closing Value")
+abline(reg=lm(ftse~time(ftse)))
+
+```
+# All the four graphs clearly shows that they are in the upward trend through the year.
+
+#Mean - The mean value is based on the time dependent.Here the mean is not constant.It varies.
+
+#Variance - Variance of the above graph shows that the series is not be a function of the time.This is also said be heteroscedasticity that is the variability of the variance is unequal across the range of values of second variables.
+
+#Covariance - It tells how the two variables vary together,here the Covariance is not constant with time.
+
+# Average of points i.e Mean is drawn using abline() to fit the line,Here the mean values is increasing.It shouldnot be increasing if its constant for stationary.Here this is not stationary.
+##############################
+# Cylce of German,Swizerland,France and UK closing stock.
+
+# Here the cycle is differ not like 12 months in a year.It is based on daywise data and they omitted the holidays and weekends.
+
+```{r}
+#time(german_dax)
+#deltat(german_dax)
+cycle(german_dax)
+cycle(swiz_smi)
+cycle(france_cac)
+cycle(uk_ftse)
+```
+#Seasonplot() - this is used to identify the seasonal decomposition to know the series with multiplicative effect can be transformed into series with additive effects through log transformation. Here the graph shows no seasonility.It moves towards upwards.
+```{r}
+par(mfrow=c(2,2))
+plot(german_dax)
+
+plot(swiz_smi)
+
+plot(france_cac)
+
+plot(uk_ftse)
+
+```
+# stl()- It's a additive trend,seasonal and irregular components can be decomposed.Here the graph shows up and down with no pattern.
+```{r}
+
+plot(stl(german_dax,s.window = "periodic"))#decompose
+
+plot(stl(swiz_smi,s.window = "periodic"))
+
+plot(stl(france_cac,s.window = "periodic"))
+
+plot(stl(uk_ftse,s.window = "periodic"))
+```
+
+# ADF - Test for stationarity
+#Dickey - fuller test or augmented DF(Order of the integration of the series to be determined & that being an integer value.And its unit root test for stationarity.Unit root can cause unpredictable results in the time series analysis.
+```{r}
+adf.test(german_dax,k=20)#more than 10 points
+
+adf.test(swiz_smi,k=20)
+
+adf.test(france_cac,k=20)
+
+adf.test(uk_ftse,k=20)
+```
+# p value is greater than 0.05 for all the four variables which is accepting the null hypothesis. the calculated DF test statistic is more negative means that the stronger the evidence for rejecting the null hypothesis of a unit  root.but here the negative value is less than the tabulated value of without trend T sample size 20.Here also we are accepting the null hypothesis.
+#In german - p value is 0.9794 which we are rejecting the null hypothesis
+#In Swiz data p vale us 0.9876 which  we are rejecting the null hypothesis
+#In france data p vale us 0.9891 which  we are rejecting the null hypothesis
+#In UK data p vale us 0.5812 which  we are rejecting the null hypothesis
+
+# the first differencing in logs ,to investigate the time series behaviour of this data via ACF and PACF to be used in the ADF test.
+# Make the time series stationary.
+```{r}
+par(mfrow=c(2,2))
+german_dax_d <- diff(log(german_dax))
+plot(german_dax_d)
+
+swiz_smi_d <- diff(log(swiz_smi))
+plot(swiz_smi_d)
+
+france_cac_d <- diff(log(france_cac))
+plot(france_cac_d)
+
+uk_ftse_d <- diff(log(uk_ftse))
+plot(uk_ftse_d)
+```
+
+```{r}
+adf.test(german_dax_d,k=15)
+#kpss.test(german_dax,null = c("Trend"))
+
+adf.test(swiz_smi_d,k=15)
+
+adf.test(france_cac_d,k=15)
+
+adf.test(uk_ftse_d,k=15)
+
+```
+#Al the series of german ,swiz ,frane and UK data nUll hypothesis rejected.p value 0.01is less than .05.ie.
+#Alternate hypothesis is accepted said to be stationary.And also the DF test staistic value also in the higher negative side that we have to reject the null hypothesis.
+####################
+# ACF acf() - autocorrelation function
+# Autocorrelation of lag 0 is always zero.It is used to understand the internal association between observations. +1 strong positive and -1 strong negative association. 0 no association.
+# Partial Autocorrelation Function
+#Computes the sample partial autocorrelation function and the 95% confidence bounds for strict white noise are also plotted. Missing values are not handled.
+```{r}
+#German-dax
+acf(german_dax_d[1:length(german_dax_d)],lag.max = 15)
+pacf(german_dax_d[1:length(german_dax_d)],lag.max = 20)
+```
+#Inference: Here in ACF plot shows that the lag 0 cut and in pacf it cuts at lag 11.Since the lag value above 5 is not to interpret the ARIMA model.We consider the lag of 0 and 1 to find the fitted model with the difference of 1.
+##################
+#Current values are related or correlated with their immediate previous Or next previous valuesarima(p,d,q)
+#Auroregressive p specifies number of lags used in the moel.
+#d referencing the degree of differencing.Differencing used to stablize the series when the stationary assumption not met.
+# q moving average represents the error of the model as the combination of the previous error terms.The order determines the number of terms to include in the model.
+
+# ARIMA model iterations (AIC)
+#In AIC (Akaike information criteria) is an estimate of constant plus relative distance between the unknown likelihood function of the data and the fitted likelihood function of the model.So lower AIC means a model is consider closer to truth.
+
+#BIC (Bayesian Information Criteria) is the estimate of s function of posterior probability of model being true under bayesian setup.Lower BIC also more likely to true model.
+
+```{r}
+fitg1<-arima(log(german_dax),c(0,1,0))
+fitg1
+BIC(fitg1)
+fitg2 <-arima(log(german_dax),c(0,1,1))
+fitg2
+BIC(fitg2)
+fitg3 <-arima(log(german_dax),c(1,1,1))
+fitg3
+BIC(fitg3)
+```
+#Inference :  Considering the fitg2 model is best having the ARIMA(0,1,0) with low AIC and log likelihood values.So we consider this model for the prediction analysis for german stock data.
+#Fitg2 - Considering the lag value cut in zero lag for AR and 0 value for MA and differentiation @ d is 1.
+
+#__________________________________-#
+
+```{r}
+# Swiz smi
+acf(swiz_smi_d[1:length(swiz_smi_d)],lag.max = 15)
+pacf(swiz_smi_d[1:length(swiz_smi_d)],lag.max = 20)
+```
+# Swis data
+```{r}
+fits1<-arima(log(swiz_smi),c(2,1,0))
+fits1
+BIC(fits1)
+fits2 <-arima(log(swiz_smi),c(1,1,0))
+fits2
+BIC(fits2)
+fits3 <-arima(log(swiz_smi),c(0,1,0))
+fits3
+BIC(fits3)
+fits4 <-arima(log(swiz_smi),c(2,1,1))
+fits4
+BIC(fits4)
+fits5 <-arima(log(swiz_smi),c(1,1,1))
+fits5
+BIC(fits5)
+```
+#Inference :  Considering the fits3 model is best having the ARIMA(0,1,0) with low AIC and log likelihood values.So we consider this model for the prediction analysis for german stock data.
+#Fits3 - Considering the lag value cut in zero lag for AR and 0 value for MA and differentiation @ d is 1.
+
+```{r}
+#France cac
+acf(france_cac_d[1:length(france_cac_d)],lag.max = 15)
+pacf(france_cac_d[1:length(france_cac_d)],lag.max = 20)
+```
+# france data
+```{r}
+fitf1<-arima(log(france_cac),c(0,1,1))
+fitf1
+BIC(fitf1)
+fitf2 <-arima(log(france_cac),c(0,1,0))
+fitf2
+BIC(fitf2)
+fitf3 <-arima(log(france_cac),c(1,1,0))
+fitf3
+BIC(fitf3)
+fitf4 <-arima(log(france_cac),c(1,1,1))
+fitf4
+BIC(fitf4)
+```
+#Inference :  Considering the fitf4 model is best having the ARIMA(1,1,1) with low AIC and log likelihood values.So we consider this model for the prediction analysis for german stock data.
+#Fitf4 - Considering the lag value cut in 1 lag for AR and 1 value for MA and differentiation @ d is 1.
+
+```{r}
+#UK ftse
+acf(uk_ftse_d[1:length(uk_ftse_d)],lag.max = 15)
+pacf(uk_ftse_d[1:length(uk_ftse_d)],lag.max = 20)
+```
+# UK data
+```{r}
+fitu1<-arima(log(uk_ftse),c(1,1,0))
+fitu1
+BIC(fitu1)
+fitu2 <-arima(log(uk_ftse),c(0,1,0))
+fitu2
+BIC(fitu2)
+fitu2 <-arima(log(uk_ftse),c(1,1,1))
+fitu2
+BIC(fitu2)
+
+```
+#Inference :  Considering the fitu2 model is best having the ARIMA(1,1,1) with low AIC and log likelihood values.So we consider this model for the prediction analysis for german stock data.
+#Fitu2 - Considering the lag value cut in 1 lag for AR and 1 value for MA and differentiation @ d is 1.
+#----------------------#
+# Forecast from models fitted by arima.This is based the cycle of 260 time instead of 12 months predicted for next 2 years
+```{r}
+par(mfrow=c(2,2))
+pred<-predict(fitg1,n.ahead = 2*260)
+ts.plot(german_dax,2.718^pred$pred, lty = c(1,4))#line type for forecasting values display 
+
+pred<-predict(fits3,n.ahead = 2*260)
+ts.plot(swiz_smi,2.718^pred$pred, lty = c(1,4))#line type for forecasting values display 
+
+pred<-predict(fitf1,n.ahead = 2*260)
+ts.plot(france_cac,2.718^pred$pred, lty = c(1,4))#line type for forecasting values display 
+
+pred<-predict(fitu2,n.ahead = 2*260)
+ts.plot(uk_ftse,2.718^pred$pred, lty = c(1,4))#line type for forecasting values display 
+
+```
+#Forecasting the data for the next 10years for the best fitted model for each stock market with low residuals.
+```{r}
+par(mfrow=c(2,2))
+mydata_fcstg <- forecast:::forecast.Arima(fitg1,h=10*12)
+forecast:::plot.forecast(mydata_fcstg)
+plot(mydata_fcstg$residuals)
+
+mydata_fcsts <- forecast:::forecast.Arima(fits3,h=10*12)
+forecast:::plot.forecast(mydata_fcsts)
+plot(mydata_fcsts$residuals)
+
+mydata_fcstf <- forecast:::forecast.Arima(fitf1,h=10*12)
+forecast:::plot.forecast(mydata_fcstf)
+plot(mydata_fcstf$residuals)
+
+mydata_fcstu <- forecast:::forecast.Arima(fitu2,h=10*12)
+forecast:::plot.forecast(mydata_fcstu)
+plot(mydata_fcstu$residuals)
+
+```
+
+```{r}
+par(mfrow=c(2,2))
+hist(mydata_fcstg$residuals,col = "blue")#for distribution
+acf(mydata_fcstg$residuals,na.action = na.pass)
+Box.test(mydata_fcstg$residuals,lag = 20,type = "Ljung-Box")
+accuracy(mydata_fcstg) # MAPE Mean Average percentage error value less than 7
+
+hist(mydata_fcsts$residuals,col = "green")#for distribution
+acf(mydata_fcsts$residuals,na.action = na.pass)
+Box.test(mydata_fcsts$residuals,lag = 20,type = "Ljung-Box")
+accuracy(mydata_fcsts) # MAPE Mean Average percentage error value less than 7
+
+hist(mydata_fcstf$residuals,col = "red")#for distribution
+acf(mydata_fcstf$residuals,na.action = na.pass)
+Box.test(mydata_fcstf$residuals,lag = 20,type = "Ljung-Box")
+accuracy(mydata_fcstf) # MAPE Mean Average percentage error value less than 7
+
+hist(mydata_fcstu$residuals,col = "yellow")#for distribution
+acf(mydata_fcstu$residuals,na.action = na.pass)
+Box.test(mydata_fcstu$residuals,lag = 20,type = "Ljung-Box")
+accuracy(mydata_fcstu) # MAPE Mean Average percentage error value less than 7
+
+```
+
+#Box Ljung test is to check the residuals from a time series model resemble white noise.If p value here 0.977 which is greater than p 0.05 so we have to accept the null hypothesis.
+
+#We don't have enough statistical evidence to reject the null hypothesis. So you can not assume that your values are dependent. This could mean that your values are dependent anyway or it can mean that your values are independent. But you are not proving any specific possibility, what your test actually said is that you can not assert the dependence of the values, neither can you assert the independence of the values.
+
+# The MAPE (Mean Absolute Percent Error) measures the size of the error in percentage terms. It is calculated as the average of the unsigned percentage error.
+#Many organizations focus primarily on the MAPE when assessing forecast accuracy.
+
+#In german dax we have 0.09 ie 94 % accuracy of the predicted residual model.
+# In Swiz we have 0.08 i.e 83% of accuracy of the predicted residual model.
+# In France we have 0.10 ie 100% of accuracy of the predicted residual model
+# In UK dara we have 0.073 ie 73% of accuracy of the predicted residual model.
+###########################
+#ARIMA simulation
+```{r}
+ar_WN <- arima.sim(list(order=c(0,0,0)),n=50) # simulating the model,ARIMA(000)is the white noise.50points.
+plot(ar_WN)
+ar_WN <- arima.sim(list(order=c(0,1,0)),n=50) # simulating the model,ARIMA(000)is the white noise.50points.
+plot(ar_WN)
+```
+##################
+
+# ses() - SIMPLE EXPONENTIAL SMOOTHING
+# not trend and seasonality in account
+
+#################
+#Simple smoothing - Simple (single) exponential smoothing uses a weighted moving average with exponentially decreasing weights.
+# ?? = the smoothing constant, a value from 0 to 1. When ?? is close to zero, smoothing happens more slowly. The best value for ?? is the one that results in the smallest mean squared error (MSE).
+
+# ses() returns forecasts and other information for exponential smoothing forecasts.
+```{r}
+par(mfrow=c(2,2))
+german <- ses(german_dax,h=10*12) 
+plot(german)
+
+swiz <- ses(swiz_smi,h=10*12) 
+plot(swiz)
+
+france <- ses(france_cac,h=10*12)
+plot(france)
+
+uk <- ses(uk_ftse,h=10*12) 
+plot(uk)
+
+```
+
+################################
+#Holt method 
+# trend into account 
+# Holt's Method makes predictions for data with a trend using two smoothing parameters,?? and ??, which correspond to the level and trend components, respectively.
+```{r}
+par(mfrow=c(2,2))
+air_holt <- holt(german_dax,h=10*12)
+plot(air_holt)
+
+air_holt <- holt(swiz_smi,h=10*12)
+plot(air_holt)
+
+air_holt <- holt(france_cac,h=10*12)
+plot(air_holt)
+
+air_holt <- holt(uk_ftse,h=10*12)
+plot(air_holt)
+```
+#######################################################
+#holt winters smoothing - random fluctuation (smoothing)
+#analysis of seasonal time series data using Holt-Winters exponential smoothing.Time-series forecasting assumes that a time series is a combination of a pattern and some random error. The goal is to separate the pattern from the error such as fluctuations in use and demand.
+```{r}
+par(mfrow=c(2,2))
+air_german <- HoltWinters(german_dax,beta = FALSE,gamma = FALSE) # alpha is true becoz of random fluctuations
+plot(air_german)
+air_german_fcst<-forecast:::forecast.HoltWinters(air_german,h=10*12)
+forecast:::plot.forecast(air_german_fcst)
+plot(air_german_fcst)
+
+air_swiz <- HoltWinters(swiz_smi,beta = FALSE,gamma = FALSE) # alpha is true becoz of random fluctuations
+plot(air_swiz)
+air_swiz_fcst<-forecast:::forecast.HoltWinters(air_swiz,h=10*12)
+forecast:::plot.forecast(air_swiz_fcst)
+plot(air_swiz_fcst)
+
+air_france <- HoltWinters(france_cac,beta = FALSE,gamma = FALSE) # alpha is true becoz of random fluctuations
+plot(air_france)
+air_france_fcst<-forecast:::forecast.HoltWinters(air_france,h=10*12)
+forecast:::plot.forecast(air_france_fcst)
+plot(air_france_fcst)
+
+air_uk <- HoltWinters(uk_ftse,beta = FALSE,gamma = FALSE) # alpha is true becoz of random fluctuations
+plot(air_uk)
+air_uk_fcst<-forecast:::forecast.HoltWinters(air_uk,h=10*12)
+forecast:::plot.forecast(air_uk_fcst)
+plot(air_uk_fcst)
+
+```
+##################
+# Double smoothing
+#Double Exponential Smoothing. Double exponential smoothing uses two constants and is better at handling trends. As was previously observed, Single Smoothing does not excel in following the data when there is a trend.
+```{r}
+par(mfrow=c(2,2))
+air_german <- HoltWinters(german_dax,gamma = FALSE) # alpha,beta is true becoz of random fluctuations
+air_german
+plot(air_german)
+air_german_fcst<-forecast:::forecast.HoltWinters(air_german,h=10*12)
+forecast:::plot.forecast(air_german_fcst)
+plot(air_german_fcst)
+
+air_swiz <- HoltWinters(swiz_smi,gamma = FALSE) # alpha ,beta is true becoz of random fluctuations
+plot(air_swiz)
+air_swiz_fcst<-forecast:::forecast.HoltWinters(air_swiz,h=10*12)
+forecast:::plot.forecast(air_swiz_fcst)
+plot(air_swiz_fcst)
+
+air_france <- HoltWinters(france_cac,gamma = FALSE) # alpha,beta is true becoz of random fluctuations
+plot(air_france)
+air_france_fcst<-forecast:::forecast.HoltWinters(air_france,h=10*12)
+forecast:::plot.forecast(air_france_fcst)
+plot(air_france_fcst)
+
+air_uk <- HoltWinters(uk_ftse,gamma = FALSE) # alpha,beta is true becoz of random fluctuations
+plot(air_uk)
+air_uk_fcst<-forecast:::forecast.HoltWinters(air_uk,h=10*12)
+forecast:::plot.forecast(air_uk_fcst)
+plot(air_uk_fcst)
+
+```
+#Triple smoothing
+# Triple exponential smoothing applies exponential smoothing three times, which is commonly used when there are three high frequency signals to be removed from a time series under study. 
+
+#HoltWinters() is using heuristic values for the initial states and then estimating the smoothing parameters by optimizing the MSE
+
+```{r}
+#German
+air_german <- HoltWinters(german_dax) # alpha,beta and gamma is true becoz of random fluctuations
+#air_german
+plot(air_german)
+air_german_fcst<-forecast:::forecast.HoltWinters(air_german,h=10*12)
+forecast:::plot.forecast(air_german_fcst)
+plot(air_german_fcst)
+#Switzerland
+air_swiz <- HoltWinters(swiz_smi) # alpha,beta and gamma is true becoz of random fluctuations
+plot(air_swiz)
+air_swiz_fcst<-forecast:::forecast.HoltWinters(air_swiz,h=10*12)
+forecast:::plot.forecast(air_swiz_fcst)
+plot(air_swiz_fcst)
+#France
+air_france <- HoltWinters(france_cac) # alpha,beta and gamma is true becoz of random fluctuations
+plot(air_france)
+air_france_fcst<-forecast:::forecast.HoltWinters(air_france,h=10*12)
+forecast:::plot.forecast(air_france_fcst)
+plot(air_france_fcst)
+#UK
+air_uk <- HoltWinters(uk_ftse) # alpha,beta and gamma is true becoz of random fluctuations
+plot(air_uk)
+air_uk_fcst<-forecast:::forecast.HoltWinters(air_uk,h=10*12)
+forecast:::plot.forecast(air_uk_fcst)
+plot(air_uk_fcst)
+
+```
+
